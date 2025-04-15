@@ -24,6 +24,14 @@ services:
     volumes:
       - redis_data:/data
     restart: unless-stopped
+  longbench:
+    build:
+      context: .
+      dockerfile: Dockerfile.longbench
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: tail -f /dev/null
 
 volumes:
   redis_data:
