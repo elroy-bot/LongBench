@@ -25,6 +25,8 @@ services:
       - redis_data:/data
     restart: unless-stopped
   longbench:
+    environment:
+      - URL=http://litellm:4000
     build:
       context: .
       dockerfile: Dockerfile.longbench

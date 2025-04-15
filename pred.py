@@ -12,7 +12,7 @@ import torch.multiprocessing as mp
 model_map = json.loads(open('config/model2path.json', encoding='utf-8').read())
 maxlen_map = json.loads(open('config/model2maxlen.json', encoding='utf-8').read())
 
-URL = "http://127.0.0.1:8000/v1"
+URL = os.environ["URL"]
 API_KEY = "token-abc123"
 template_rag = open('prompts/0shot_rag.txt', encoding='utf-8').read()
 template_no_context = open('prompts/0shot_no_context.txt', encoding='utf-8').read()
@@ -95,7 +95,7 @@ def get_pred(data, args, fout):
             output = query_llm(prompt, model, tokenizer, client, temperature=0.1, max_new_tokens=1024)
         else:
             output = query_llm(prompt, model, tokenizer, client, temperature=0.1, max_new_tokens=128)
-        if output == '':
+        if output == '' or output is None:
             continue
         if args.cot: # extract answer
             response = output.strip()
@@ -113,6 +113,7 @@ def get_pred(data, args, fout):
         fout.flush()
 
 def main():
+    mp.set_start_method('fork')  # Add this line before parsing args
     os.makedirs(args.save_dir, exist_ok=True)
     print(args)
     if args.rag > 0:
@@ -154,6 +155,6 @@ if __name__ == "__main__":
     parser.add_argument("--cot", "-cot", action='store_true') # set to True if using COT
     parser.add_argument("--no_context", "-nc", action='store_true') # set to True if using no context (directly measuring memorization)
     parser.add_argument("--rag", "-rag", type=int, default=0) # set to 0 if RAG is not used, otherwise set to N when using top-N retrieved context
-    parser.add_argument("--n_proc", "-n", type=int, default=16)
+    parser.add_argument("--n_proc", "-n", type=int, default=4)
     args = parser.parse_args()
     main()
