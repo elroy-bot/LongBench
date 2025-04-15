@@ -113,7 +113,6 @@ def get_pred(data, args, fout):
         fout.flush()
 
 def main():
-    mp.set_start_method('fork')  # Add this line before parsing args
     os.makedirs(args.save_dir, exist_ok=True)
     print(args)
     if args.rag > 0:
@@ -141,12 +140,17 @@ def main():
 
     data_subsets = [data[i::args.n_proc] for i in range(args.n_proc)]
     processes = []
-    for rank in range(args.n_proc):
-        p = mp.Process(target=get_pred, args=(data_subsets[rank], args, fout))
-        p.start()
-        processes.append(p)
-    for p in processes:
-        p.join()
+
+    if args.n_proc == 1:
+        get_pred(data, args, fout)
+    else:
+        mp.set_start_method('fork')
+        for rank in range(args.n_proc):
+            p = mp.Process(target=get_pred, args=(data_subsets[rank], args, fout))
+            p.start()
+            processes.append(p)
+        for p in processes:
+            p.join()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -155,6 +159,6 @@ if __name__ == "__main__":
     parser.add_argument("--cot", "-cot", action='store_true') # set to True if using COT
     parser.add_argument("--no_context", "-nc", action='store_true') # set to True if using no context (directly measuring memorization)
     parser.add_argument("--rag", "-rag", type=int, default=0) # set to 0 if RAG is not used, otherwise set to N when using top-N retrieved context
-    parser.add_argument("--n_proc", "-n", type=int, default=4)
+    parser.add_argument("--n_proc", "-n", type=int, default=1)
     args = parser.parse_args()
     main()
