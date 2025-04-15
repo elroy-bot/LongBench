@@ -113,6 +113,7 @@ def get_pred(data, args, fout):
         fout.flush()
 
 def main():
+    mp.set_start_method('fork')
     os.makedirs(args.save_dir, exist_ok=True)
     print(args)
     if args.rag > 0:
@@ -144,7 +145,6 @@ def main():
     if args.n_proc == 1:
         get_pred(data, args, fout)
     else:
-        mp.set_start_method('fork')
         for rank in range(args.n_proc):
             p = mp.Process(target=get_pred, args=(data_subsets[rank], args, fout))
             p.start()

@@ -1,0 +1,2 @@
+Model	Overall	Easy	Hard	Short	Medium	Long
+gpt-4o-mini	34.3	39.8	30.8	39.4	33.3	28.6
