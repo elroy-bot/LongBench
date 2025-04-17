@@ -77,8 +77,29 @@ def get_pred(data, args, fout):
         base_url=URL,
         api_key=API_KEY
     )
+
+    # mkdir if not exist
+    if not os.path.exists("context_data"):
+        os.makedirs("context_data")
+
+    for idx, item in enumerate(data):
+        context = item['context']
+        domain = item['domain']
+        sub_domain = item['sub_domain']
+        difficulty = item['difficulty']
+
+
+        filename = os.path.join("context_data", f"{idx}_{domain}_{sub_domain}_{difficulty}.txt")
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(context)
+
+    exit(1)
+
+
     for item in tqdm(data):
         context = item['context']
+        import pdb; pdb.set_trace()
         if args.rag > 0:
             template = template_rag
             retrieved = item["retrieved_context"][:args.rag]
