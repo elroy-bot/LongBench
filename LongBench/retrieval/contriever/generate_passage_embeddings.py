@@ -22,6 +22,7 @@ import src.utils
 import src.data
 import src.normalize_text
 
+
 def embed_passages(args, passages, model, tokenizer):
     total = 0
     allids, allembeddings = [], []
@@ -92,6 +93,7 @@ def main(args):
             base_name = os.path.basename(file_path)  # 获取文件名
             file_name_without_extension = os.path.splitext(base_name)[0]  # 去除后缀
             return file_name_without_extension
+
         fileName = get_file_name_without_extension(psg)
         save_file = os.path.join(args.output_dir, fileName)
         os.makedirs(args.output_dir, exist_ok=True)
@@ -101,21 +103,18 @@ def main(args):
 
         print(f"Total passages processed {len(allids)}. Written to {save_file}.")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--psgs_list", nargs='+', required=True)
+    parser.add_argument("--psgs_list", nargs="+", required=True)
     # parser.add_argument("--passages", type=str, default=None, help="Path to passages (.tsv file)")
     parser.add_argument("--output_dir", type=str, default="wikipedia_embeddings", help="dir path to save embeddings")
     parser.add_argument("--prefix", type=str, default="passages", help="prefix path to save embeddings")
     parser.add_argument("--shard_id", type=int, default=0, help="Id of the current shard")
     parser.add_argument("--num_shards", type=int, default=1, help="Total number of shards")
-    parser.add_argument(
-        "--per_gpu_batch_size", type=int, default=512, help="Batch size for the passage encoder forward pass"
-    )
+    parser.add_argument("--per_gpu_batch_size", type=int, default=512, help="Batch size for the passage encoder forward pass")
     parser.add_argument("--passage_maxlength", type=int, default=512, help="Maximum number of tokens in a passage")
-    parser.add_argument(
-        "--model_name_or_path", type=str, help="path to directory containing model weights and config file"
-    )
+    parser.add_argument("--model_name_or_path", type=str, help="path to directory containing model weights and config file")
     parser.add_argument("--no_fp16", action="store_true", help="inference in fp32")
     parser.add_argument("--no_title", action="store_true", help="title not added to the passage body")
     parser.add_argument("--lowercase", action="store_true", help="lowercase text before encoding")

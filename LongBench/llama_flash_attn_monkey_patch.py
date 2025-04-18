@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import nn
@@ -14,15 +14,14 @@ from flash_attn.bert_padding import unpad_input, pad_input
 
 
 def forward(
-        self,
-        hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.Tensor] = None,
-        position_ids: Optional[torch.Tensor] = None,
-        past_key_value: Optional[Tuple[torch.Tensor]] = None,
-        output_attentions: bool = False,
-        use_cache: bool = False,
-) -> Tuple[torch.Tensor, Optional[torch.Tensor],
-           Optional[Tuple[torch.Tensor]]]:
+    self,
+    hidden_states: torch.Tensor,
+    attention_mask: Optional[torch.Tensor] = None,
+    position_ids: Optional[torch.Tensor] = None,
+    past_key_value: Optional[Tuple[torch.Tensor]] = None,
+    output_attentions: bool = False,
+    use_cache: bool = False,
+) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
     """Input shape: Batch x Time x Channel
 
     attention_mask: [bsz, q_len]
@@ -65,15 +64,12 @@ def forward(
 
         if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
             raise ValueError(
-                f"Attention weights should be of size {(bsz * self.num_heads, q_len, kv_seq_len)}, but is"
-                f" {attn_weights.size()}"
+                f"Attention weights should be of size {(bsz * self.num_heads, q_len, kv_seq_len)}, but is" f" {attn_weights.size()}"
             )
 
         if attention_mask is not None:
             if attention_mask.size() != (bsz, 1, q_len, kv_seq_len):
-                raise ValueError(
-                    f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
-                )
+                raise ValueError(f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}")
             attn_weights = attn_weights + attention_mask
             attn_weights = torch.max(attn_weights, torch.tensor(torch.finfo(attn_weights.dtype).min))
 
@@ -83,8 +79,7 @@ def forward(
 
         if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
             raise ValueError(
-                f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
-                f" {attn_output.size()}"
+                f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is" f" {attn_output.size()}"
             )
 
         attn_output = attn_output.transpose(1, 2)
@@ -104,46 +99,37 @@ def forward(
     key_padding_mask = attention_mask
 
     if key_padding_mask is None:
-        qkv = rearrange(qkv, 'b s ... -> (b s) ...')
+        qkv = rearrange(qkv, "b s ... -> (b s) ...")
         max_s = q_len
-        cu_q_lens = torch.arange(0, (bsz + 1) * q_len, step=q_len, dtype=torch.int32,
-                                 device=qkv.device)
-        output = flash_attn_varlen_qkvpacked_func(
-            qkv, cu_q_lens, max_s, 0.0,
-            softmax_scale=None, causal=True
-        )
-        output = rearrange(output, '(b s) ... -> b s ...', b=bsz)
+        cu_q_lens = torch.arange(0, (bsz + 1) * q_len, step=q_len, dtype=torch.int32, device=qkv.device)
+        output = flash_attn_varlen_qkvpacked_func(qkv, cu_q_lens, max_s, 0.0, softmax_scale=None, causal=True)
+        output = rearrange(output, "(b s) ... -> b s ...", b=bsz)
     else:
         nheads = qkv.shape[-2]
-        x = rearrange(qkv, 'b s three h d -> b s (three h d)')
+        x = rearrange(qkv, "b s three h d -> b s (three h d)")
         x_unpad, indices, cu_q_lens, max_s = unpad_input(x, key_padding_mask)
-        x_unpad = rearrange(x_unpad, 'nnz (three h d) -> nnz three h d', three=3, h=nheads)
-        output_unpad = flash_attn_varlen_qkvpacked_func(
-            x_unpad, cu_q_lens, max_s, 0.0,
-            softmax_scale=None, causal=True
+        x_unpad = rearrange(x_unpad, "nnz (three h d) -> nnz three h d", three=3, h=nheads)
+        output_unpad = flash_attn_varlen_qkvpacked_func(x_unpad, cu_q_lens, max_s, 0.0, softmax_scale=None, causal=True)
+        output = rearrange(
+            pad_input(rearrange(output_unpad, "nnz h d -> nnz (h d)"), indices, bsz, q_len), "b s (h d) -> b s h d", h=nheads
         )
-        output = rearrange(pad_input(rearrange(output_unpad, 'nnz h d -> nnz (h d)'),
-                                     indices, bsz, q_len),
-                           'b s (h d) -> b s h d', h=nheads)
-    attn_output = self.o_proj(rearrange(output, 'b s h d -> b s (h d)'))
+    attn_output = self.o_proj(rearrange(output, "b s h d -> b s (h d)"))
 
     return attn_output, None, past_key_value
 
 
 # Disable the transformation of the attention mask in LlamaModel as the flash attention
 # requires the attention mask to be the same as the key_padding_mask
-def _prepare_decoder_attention_mask(self, attention_mask, input_shape,
-                                    inputs_embeds, past_key_values_length):
+def _prepare_decoder_attention_mask(self, attention_mask, input_shape, inputs_embeds, past_key_values_length):
     # [bsz, seq_len]
     if input_shape[-1] > 1 and past_key_values_length == 0:  # encode
         return attention_mask
-    return transformers.models.bart.modeling_bart.BartDecoder._prepare_decoder_attention_mask(self, attention_mask,
-                                                                                              input_shape,
-                                                                                              inputs_embeds,
-                                                                                              past_key_values_length)
+    return transformers.models.bart.modeling_bart.BartDecoder._prepare_decoder_attention_mask(
+        self, attention_mask, input_shape, inputs_embeds, past_key_values_length
+    )
 
 
 def replace_llama_attn_with_flash_attn():
-    print('use FlashAttention')
+    print("use FlashAttention")
     transformers.models.llama.modeling_llama.LlamaModel._prepare_decoder_attention_mask = _prepare_decoder_attention_mask
     transformers.models.llama.modeling_llama.LlamaAttention.forward = forward

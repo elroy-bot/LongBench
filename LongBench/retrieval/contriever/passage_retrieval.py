@@ -6,17 +6,13 @@
 
 import os
 import argparse
-import csv
 import json
-import logging
 import pickle
 import time
 import glob
-from pathlib import Path
 
 import numpy as np
 import torch
-import transformers
 
 import src.index
 import src.contriever
@@ -28,6 +24,7 @@ import src.normalize_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 # os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 
 def embed_queries(args, queries, model, tokenizer):
     model.eval()
@@ -107,7 +104,6 @@ def validate(data, workers_num):
 
 def add_passages(data, passages, top_passages_and_scores):
     # add passages to original data
-    merged_data = []
     assert len(data) == len(top_passages_and_scores)
     for i, d in enumerate(data):
         results_and_scores = top_passages_and_scores[i]
@@ -130,6 +126,7 @@ def add_hasanswer(data, hasanswer):
     for i, ex in enumerate(data):
         for k, d in enumerate(ex["ctxs"]):
             d["hasanswer"] = hasanswer[i][k]
+
 
 def load_data(data_path):
     if data_path.endswith(".json"):
@@ -175,7 +172,6 @@ def main(args):
     passage_id_map = {x["id"]: x for x in passages}
 
     data_paths = glob.glob(args.data)
-    alldata = []
     for path in data_paths:
         data = load_data(path)
         output_path = os.path.join(args.output_dir, os.path.basename(path))
@@ -207,34 +203,32 @@ if __name__ == "__main__":
         "--data",
         # required=True,
         type=str,
-        
-        default='./data_longbench/split/2wikimqa/0a64d8873482d91efc595a508218c6ce881c13c95028039e.jsonl',
+        default="./data_longbench/split/2wikimqa/0a64d8873482d91efc595a508218c6ce881c13c95028039e.jsonl",
         help=".json file containing question and answers, similar format to reader data",
     )
-    parser.add_argument("--passages", type=str, default='./data_longbench/split/2wikimqa/0a64d8873482d91efc595a508218c6ce881c13c95028039e.tsv',
-                         help="Path to passages (.tsv file)")
-    parser.add_argument("--passages_embeddings", type=str, default='./data_longbench/mEmbeddings/2wikimqa/0a64d8873482d91efc595a508218c6ce881c13c95028039e.jsonl', 
-                        help="Glob path to encoded passages")
     parser.add_argument(
-        "--output_dir", type=str, default=None, help="Results are written to outputdir with data suffix"
+        "--passages",
+        type=str,
+        default="./data_longbench/split/2wikimqa/0a64d8873482d91efc595a508218c6ce881c13c95028039e.tsv",
+        help="Path to passages (.tsv file)",
     )
+    parser.add_argument(
+        "--passages_embeddings",
+        type=str,
+        default="./data_longbench/mEmbeddings/2wikimqa/0a64d8873482d91efc595a508218c6ce881c13c95028039e.jsonl",
+        help="Glob path to encoded passages",
+    )
+    parser.add_argument("--output_dir", type=str, default=None, help="Results are written to outputdir with data suffix")
     parser.add_argument("--n_docs", type=int, default=100, help="Number of documents to retrieve per questions")
-    parser.add_argument(
-        "--validation_workers", type=int, default=32, help="Number of parallel processes to validate results"
-    )
+    parser.add_argument("--validation_workers", type=int, default=32, help="Number of parallel processes to validate results")
     parser.add_argument("--per_gpu_batch_size", type=int, default=64, help="Batch size for question encoding")
+    parser.add_argument("--save_or_load_index", action="store_true", help="If enabled, save index and load index if it exists")
     parser.add_argument(
-        "--save_or_load_index", action="store_true", help="If enabled, save index and load index if it exists"
-    )
-    parser.add_argument(
-        "--model_name_or_path", type=str, default='./../mcontriever',
-          help="path to directory containing model weights and config file"
+        "--model_name_or_path", type=str, default="./../mcontriever", help="path to directory containing model weights and config file"
     )
     parser.add_argument("--no_fp16", action="store_true", help="inference in fp32")
     parser.add_argument("--question_maxlength", type=int, default=512, help="Maximum number of tokens in a question")
-    parser.add_argument(
-        "--indexing_batch_size", type=int, default=1000000, help="Batch size of the number of passages indexed"
-    )
+    parser.add_argument("--indexing_batch_size", type=int, default=1000000, help="Batch size of the number of passages indexed")
     parser.add_argument("--projection_size", type=int, default=768)
     parser.add_argument(
         "--n_subquantizers",
@@ -247,7 +241,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", type=str, default="none")
     parser.add_argument("--lowercase", action="store_true", default=True, help="lowercase text before encoding")
     parser.add_argument("--normalize_text", action="store_true", default=True, help="normalize text")
-    parser.add_argument("--device", type=str, default='cuda', help="normalize text")
+    parser.add_argument("--device", type=str, default="cuda", help="normalize text")
 
     args = parser.parse_args()
     src.slurm.init_distributed_mode(args)

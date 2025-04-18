@@ -25,26 +25,17 @@ _HOMEPAGE = "https://github.com/THUDM/LongBench"
 
 # _URL = r"https://huggingface.co/datasets/THUDM/LongBench/resolve/main/data.zip"
 _URLS = {
-    "2wikimqa": "./data/2wikimqa.jsonl", 
-    "dureader": "./data/dureader.jsonl", 
-    "qasper": "./data/qasper.jsonl", 
-    "hotpotqa": "./data/hotpotqa.jsonl", 
-    "narrativeqa": "./data/narrativeqa.jsonl", 
-    "musique": "./data/musique.jsonl", 
-    "multifieldqa_zh":"./data/multifieldqa_zh.jsonl",
-    "multifieldqa_en":"./data/multifieldqa_en.jsonl",
+    "2wikimqa": "./data/2wikimqa.jsonl",
+    "dureader": "./data/dureader.jsonl",
+    "qasper": "./data/qasper.jsonl",
+    "hotpotqa": "./data/hotpotqa.jsonl",
+    "narrativeqa": "./data/narrativeqa.jsonl",
+    "musique": "./data/musique.jsonl",
+    "multifieldqa_zh": "./data/multifieldqa_zh.jsonl",
+    "multifieldqa_en": "./data/multifieldqa_en.jsonl",
 }
 
-task_list = [
-    "multifieldqa_en",
-    "qasper",
-    "2wikimqa",
-    "dureader",
-    "hotpotqa",
-    "narrativeqa",
-    "musique",
-    "multifieldqa_zh"
-]
+task_list = ["multifieldqa_en", "qasper", "2wikimqa", "dureader", "hotpotqa", "narrativeqa", "musique", "multifieldqa_zh"]
 
 
 class LongBenchConfig(datasets.BuilderConfig):
@@ -63,15 +54,15 @@ class LongBench(datasets.GeneratorBasedBuilder):
     def _info(self):
         features = datasets.Features(
             {
-                "input": datasets.Value("string"), 
-                "context": datasets.Value("string"), 
-                "answers": [datasets.Value("string")], 
-                "length": datasets.Value("int32"), 
-                "dataset": datasets.Value("string"), 
-                "language": datasets.Value("string"), 
+                "input": datasets.Value("string"),
+                "context": datasets.Value("string"),
+                "answers": [datasets.Value("string")],
+                "length": datasets.Value("int32"),
+                "dataset": datasets.Value("string"),
+                "language": datasets.Value("string"),
                 "all_classes": [datasets.Value("string")],
                 "retrieved": [datasets.Value("string")],
-                "_id": datasets.Value("string"), 
+                "_id": datasets.Value("string"),
             }
         )
         return datasets.DatasetInfo(
